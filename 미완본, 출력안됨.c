@@ -1,33 +1,34 @@
 #include <stdio.h>
-#pragma warning(disable:4996)
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#define MAX_DEGREE 101
-#define MAX_SIZE 30000 // 메모리 제한에 맞게 적절히 조절하세요
+#pragma warning(disable:4996)
 
-////////////////여기서부터
+#define MAX_SIZE 3000000 // 메모리 제한에 맞게 적절히 조절하세요
+
+////////////////여기서부터 연결리스트
 // 구조체 정의
 typedef struct Poly* PolyPointer;
 typedef struct Poly {
     int coef;
     int expon;
     PolyPointer link;
-}Poly;
+} Poly;
 // 리스트의 시작점을 나타내는 포인터들
-PolyPointer  front[3] = { NULL, NULL, NULL }; // 다항식 A B C의 첫번째 노드 a, 0 는 b,1는 d.2에 저장
-PolyPointer  rear[3] = { NULL, NULL, NULL }; //다항식 A B C의 마지막 노드
-PolyPointer  a = NULL; // 다항식 A
-PolyPointer  b = NULL; // 다항식 B
-PolyPointer  d = NULL; // 다항식 A + B 결과 D
+PolyPointer front[3] = { NULL, NULL, NULL }; // 다항식 A, B, D의 첫 번째 노드
+PolyPointer rear[3] = { NULL, NULL, NULL };  // 다항식 A, B, D의 마지막 노드
+PolyPointer a = NULL; // 다항식 A
+PolyPointer b = NULL; // 다항식 B
+PolyPointer d = NULL; // 다항식 A + B 결과 D
 
-void attach(int coef, int expon);  //연결리스트
-void Print(PolyPointer fornt, FILE* fp);
+void attach(int coef, int expon);  // 연결리스트
+void Print(PolyPointer front, FILE* fp);
 void InsertPoly(int poly, int exp, int coef);
 PolyPointer padd(PolyPointer a, PolyPointer b);
-int COMPARE(int a, int b);  //연결리스트
+int COMPARE(int a, int b);  // 연결리스트
+
+int BubbleSort(int exp[], int coef[], int len);
 int Compare(int ae[], int be[], int a, int b);
-int BubbleSort(int a[], int b[], int x);
 int ChoigiVersion(int ae[], int be[], int ac[], int bc[], int de[], int df[], int A_len, int B_len, int D_len);
 int GaesonVersion(int ae[], int be[], int ac[], int bc[], int de[], int df[], int D_len, int A_len, int B_len);
 int Attach(float coefficient, int exponent, int de[], int dc[], int* avail);
@@ -46,232 +47,185 @@ int main() {
 
     inputFile = fopen("input.txt", "r");
     outputFile = fopen("output.txt", "w");
-    //파일 오류처리 부분
+    // 파일 오류 처리
     if (inputFile == NULL || outputFile == NULL) {
         printf("파일을 열 수 없습니다.\n");
         return 1;
     }
-    // 1행 부분은 다항식 A와 B식의 항의 개수이므로 따로 저장. 
+    // 1행 부분은 다항식 A와 B식의 항의 개수이므로 따로 저장
     fscanf(inputFile, "%d %d", &number_of_exponents[0], &number_of_exponents[1]);
     int n = 0, i = 0;
-    // 1열 은 coef 2열은 exp 에 저장 .
+    // 1열은 coef, 2열은 exp에 저장
     while (fscanf(inputFile, "%d %d", &coef[n], &exp[n]) == 2) {
         n++;
     }
     fclose(inputFile);
+    //    //    a Exp 와 b Exp 그리고 a Coef 와 b Coef 만들기
+//    //   ■ Example : f１(x) = 2x4 + 1x， f2(x)＝ 4x3 + 3x2 + 1x
+//    //    2 3  항  개수 선언부분 : 배열명 (number_of_exponents)에저장됨 
+//    //    2 4  1열 2행 3행은 a다항식의 계수부분 :배열명(coef)에 저장됨  (number_of_exponents)의 첫번째 칸은 첫번재 다항식의 길이(2)를 나타내는 값인데, 이만큼 a의 배열에 (2칸) 할당되어 있음.  
+//    //    1 1  2열 2행 3행은 a다항식의 지수부분 :배열명(exp)에 저장됨   
+//    //    4 3  1열 4행 5행 6행은 b다항식의 계수부분 :배열명(coef)에 저장됨 (number_of_exponents) 의 a다항식의 항의 개수만큼 인덱스가 지나가면 그후로는 b다항식의 개수(3)만큼 추가로 할당되었다.  
+//    //    3 2  2열 4행 5행 6행은 b다항식의 지수부분 :배열명(exp)에 저장됨 
+//    //    1 1
+//
+    int A_len = number_of_exponents[0];  // A다항식의 항 갯수 확인
+    int B_len = number_of_exponents[1];  // B다항식의 항 갯수 확인
 
-    /*fprintf(outputFile, "array1: %d %d\n", number_of_exponents[0], number_of_exponents[1]);
-    fprintf(outputFile, "array2: ");
-    for (i = 0; i < n; i++) fprintf(outputFile, "%d ", coef[i]);
-    fprintf(outputFile, "\narray3: ");
-    for (i = 0; i < n; i++) fprintf(outputFile, "%d ", exp[i]);
-    fprintf(outputFile, "\n");
-
-    fclose(outputFile);*/
-
-
-    //    a Exp 와 b Exp 그리고 a Coef 와 b Coef 만들기
-    //   ■ Example : f１(x) = 2x4 + 1x， f2(x)＝ 4x3 + 3x2 + 1x
-    //    2 3  항개수 선언부분 : 배열명 (number_of_exponents)에저장됨 
-    //    2 4  1열 2행 3행은 a다항식의 계수부분 :배열명(coef)에 저장됨  (number_of_exponents)의 첫번째 칸은 첫번재 다항식의 길이(2)를 나타내는 값인데, 이만큼 a의 배열에 (2칸) 할당되어 있음.  
-    //    1 1  2열 2행 3행은 a다항식의 지수부분 :배열명(exp)에 저장됨   
-    //    4 3  1열 4행 5행 6행은 b다항식의 계수부분 :배열명(coef)에 저장됨 (number_of_exponents) 의 a다항식의 항의 개수만큼 인덱스가 지나가면 그후로는 b다항식의 개수(3)만큼 추가로 할당되었다.  
-    //    3 2  2열 4행 5행 6행은 b다항식의 지수부분 :배열명(exp)에 저장됨 
-    //    1 1
-
-    int A_len = number_of_exponents[0];  //A다항식의 항 갯수 확인 ( 1행 1열 숫자)
-    int B_len = number_of_exponents[1];  //B다항식의 항 갯수 확인 ( 1행 2열 숫자)
-
-    int* A_exp = (int*)malloc(sizeof(int) * A_len);  //A다항식의 항 갯수만큼 동적배열
-    int* A_coef = (int*)malloc(sizeof(int) * A_len); //A다항식의 항 갯수만큼 동적배열
-    int* B_exp = (int*)malloc(sizeof(int) * B_len); //B다항식의 항 갯수만큼 동적배열
-    int* B_coef = (int*)malloc(sizeof(int) * B_len); //B다항식의 항 갯수만큼 동적배열
+    int* A_exp = (int*)malloc(sizeof(int) * A_len);  // A다항식의 항 갯수만큼 동적배열
+    int* A_coef = (int*)malloc(sizeof(int) * A_len); // A다항식의 항 갯수만큼 동적배열
+    int* B_exp = (int*)malloc(sizeof(int) * B_len); // B다항식의 항 갯수만큼 동적배열
+    int* B_coef = (int*)malloc(sizeof(int) * B_len); // B다항식의 항 갯수만큼 동적배열
 
     for (int i = 0; i < A_len; i++) {
-        A_exp[i] = exp[i];     //a다항식 갯수만큼 지수부분을 전체exp 에서 a exp에 저장한다.
-        A_coef[i] = coef[i];   //a다항식 갯수만큼 계수부분을 전체coef 에서 a coef에 저장한다.
+        A_exp[i] = exp[i];     // A 다항식 지수 저장
+        A_coef[i] = coef[i];   // A 다항식 계수 저장
     }
     for (int i = 0; i < B_len; i++) {
-        B_exp[i] = exp[i + A_len];  //전체 exp 즉 입력시 1열 부분에서 a다항식의 크기 만큼 넘어간 이후의 부분은 b의 다항식의 지수부분 이므로 그때부턴 b의계수부분에 저장.  
-        B_coef[i] = coef[i + A_len]; // B_coef[i](B의 계수 저장부분) = (전체 계수부분)->coef[i + A_len (A 다항식 길이 이후가 B 계수가 저장된 부분이므로)]
+        B_exp[i] = exp[i + A_len];  // B 다항식 지수 저장
+        B_coef[i] = coef[i + A_len]; // B 다항식 계수 저장
     }
 
-    BubbleSort(A_exp, A_coef, A_len);   //A 지수의 크기가 랜덤하므로 낮은차순 정렬
-    BubbleSort(B_exp, B_coef, B_len);   //B 지수의 크기가 랜덤하므로 낮은차순 정렬
+    BubbleSort(A_exp, A_coef, A_len);   // A 지수의 크기가 랜덤하므로 내림차순 정렬
+    BubbleSort(B_exp, B_coef, B_len);   // B 지수의 크기가 랜덤하므로 내림차순 정렬
 
-    int D_len = A_len + B_len;  //A다항식과 B의 다항식을 더한 D의 다항식은 최악의 경우 A다항식 B의다항식 지수부분이겹치지 않아 둘이 더한 개수만큼 나올 수 있으니 그만큼 동적배열 선언한다. 
-    int* D_exp = (int*)malloc(sizeof(int) * D_len);  //D 지수 부분 저장하는 동적배열
-    int* D_coef = (int*)malloc(sizeof(int) * D_len);//D 계수 부분 저장하는 동적배열
-    for (int i = 0; i < D_len; i++) {
-        D_exp[i] = NULL;
-        D_coef[i] = NULL;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////아래는 측정시작 ////////////////////////////////////////////////////////////////////////////
-
-    //초기버전 측정
-    clock_t start1 = clock();
-    int Real_D_len = 0;
-    Real_D_len =  ChoigiVersion(A_exp, B_exp, A_coef, B_coef, D_exp, D_coef, A_len, B_len, D_len) ; //초기버전 덧셈
-    clock_t end1 = clock();
-    double time1 = (double)(end1 - start1) / CLOCKS_PER_SEC;
-    
-    //////////////////////////////////////////////////////////////////초기버전/////////////////////////////////////////////////////////////////////////
-   // 초기 버전 결과 출력 A다항식 출력부분
-    for (int i = 0; i < A_len; i++) {
-        if (i > 0) fprintf(outputFile, " + ");
-        fprintf(outputFile, "%dx^%d", A_coef[i], A_exp[i]);
-    }
-    fprintf(outputFile, "\n");
-    //B다항식 출력부분
-    for (int i = 0; i < B_len; i++) {
-        if (i > 0) fprintf(outputFile, " + ");
-        fprintf(outputFile, "%dx^%d", B_coef[i], B_exp[i]);
-    }
-    fprintf(outputFile, "\n");
-
-    // A다항식과 B다항식을 더한 D다항식출력부분
-    int firstTerm = 1;
-    for (int i = 0; i < D_len; i++) {
-        if (D_exp[i] == 0 && D_coef[i] == 0) continue;
-
-        if (!firstTerm) {
-            fprintf(outputFile, " + ");
-        }
-
-        if (D_exp[i] == 0) {
-            // 지수가 0이면 상수항으로 출력
-            fprintf(outputFile, "%d", D_coef[i]);
-        }
-        else if (D_coef[i] == 1) {
-            // 계수가 1이면 1은 생략하고 출력
-            fprintf(outputFile, "x^%d", D_exp[i]);
-        }
-        else {
-            // 일반 항
-            fprintf(outputFile, "%dx^%d", D_coef[i], D_exp[i]);
-        }
-
-        firstTerm = 0;
-    }
-    fprintf(outputFile, "\n\n");
-
-    //////////////////////////////////////////////////////////////////초기버전 출력 끝/////////////////////////////////////////////////////////////////////////
-
-    //    초기버전을 도는동안 채워진 D다항식 초기화 (개선버전 구동 과정전인데 이미 결과로 채워져 있으면 안되므로, )
+    int D_len = A_len + B_len;  // A다항식과 B의 다항식을 더한 D의 다항식은 최악의 경우 A다항식 B의다항식 지수부분이 겹치지 않아 둘이 더한 개수만큼 나올 수 있으니 그만큼 동적배열 선언한다.
+    int* D_exp = (int*)malloc(sizeof(int) * D_len);  // D 지수 부분 저장하는 동적배열
+    int* D_coef = (int*)malloc(sizeof(int) * D_len); // D 계수 부분 저장하는 동적배열
     for (int i = 0; i < D_len; i++) {
         D_exp[i] = 0;
         D_coef[i] = 0;
     }
 
-    //////////////////////////////////////////////////////////////////개선버전 출력 시작/////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////초기버전 측정/////////////////////////////////////////////////////////////////////////////
+    clock_t start1 = clock();
+    int Real_D_len = ChoigiVersion(A_exp, B_exp, A_coef, B_coef, D_exp, D_coef, A_len, B_len, D_len); // 초기버전 덧셈함수
+    clock_t end1 = clock();
+    double time1 = (double)(end1 - start1) / CLOCKS_PER_SEC; // 초기버전 구동 시간
 
-    // 개선 버전 실행 및 출력
-    for (int i = 0; i < D_len; i++) {
-        D_exp[i] = D_coef[i] = 0;
+    //////////////////////////////////////////////////////////////////초기버전 결과 출력/////////////////////////////////////////////////////////////////////////
+    for (int i = 0; i < A_len; i++) {
+        if (i > 0) fprintf(outputFile, " + "); {
+            if (A_exp[i] == 0) {
+                fprintf(outputFile, "%d", A_coef[i]); // 상수항 출력
+            }
+            else {
+                fprintf(outputFile, "%dx^%d", A_coef[i], A_exp[i]);
+            }
+        }
     }
-    //개선버전 시간측정
+    fprintf(outputFile, "\n");
+    //초기버전 b다항식 
+    for (int i = 0; i < B_len; i++) {
+        if (i > 0) fprintf(outputFile, " + "); {
+            if (B_exp[i] == 0) {
+                fprintf(outputFile, "%d", B_coef[i]); // 상수항 출력
+            }
+            else {
+                fprintf(outputFile, "%dx^%d", B_coef[i], B_exp[i]);
+            }
+        }
+    }
+    fprintf(outputFile, "\n");
+    ///초기 버전  더한 값 출력부분 
+    for (int i = 0; i < Real_D_len; i++) {
+        if (i > 0) fprintf(outputFile, " + ");
+        if (D_exp[i] == 0) { //상수항 출력
+            fprintf(outputFile, "%d", D_coef[i]);
+        }
+        else {
+            fprintf(outputFile, "%dx^%d", D_coef[i], D_exp[i]);
+        }
+    }
+    fprintf(outputFile, "\n\n");
+
+    //////////////////////////////////////////////////////////////////개선버전 측정/////////////////////////////////////////////////////////////////////////
+    for (int i = 0; i < D_len; i++) {
+        D_exp[i] = 0;
+        D_coef[i] = 0;
+    }
     clock_t start2 = clock();
     GaesonVersion(A_exp, B_exp, A_coef, B_coef, D_exp, D_coef, D_len, A_len, B_len);
     clock_t end2 = clock();
     double time2 = (double)(end2 - start2) / CLOCKS_PER_SEC;
 
-    // A다항식 출력
+    ///////////////////////A다항식 출력부분//////////////////////A다항식 출력부분//////////////////////A다항식 출력부분//////////////////////A다항식 출력부분
     for (int i = 0; i < A_len; i++) {
-        if (i > 0) fprintf(outputFile, " + ");
-        fprintf(outputFile, "%dx^%d", A_coef[i], A_exp[i]);
+        if (i > 0) fprintf(outputFile, " + "); {
+            if (A_exp[i] == 0) {  //a의 지수가 0일때 
+                fprintf(outputFile, "%d", A_coef[i]); // 상수항만 출력
+            }
+            else {
+                fprintf(outputFile, "%dx^%d", A_coef[i], A_exp[i]);
+            }
+        }
     }
     fprintf(outputFile, "\n");
-
-    // B다항식 출력
+    ////////////b다항식 출력부분 
     for (int i = 0; i < B_len; i++) {
-        if (i > 0) fprintf(outputFile, " + ");
-        fprintf(outputFile, "%dx^%d", B_coef[i], B_exp[i]);
+        if (i > 0) fprintf(outputFile, " + "); {
+            if (B_exp[i] == 0) { //b의 지수가 0일때 
+                fprintf(outputFile, "%d", B_coef[i]); // 상수항만  출력
+            }
+            else {
+                fprintf(outputFile, "%dx^%d", B_coef[i], B_exp[i]);
+            }
+        }
     }
     fprintf(outputFile, "\n");
+    //더한 값 출력부분 
+    for (int i = 0; i < Real_D_len; i++) {
+        if (i > 0) fprintf(outputFile, " + ");
+        if (D_exp[i] == 0) {
+            fprintf(outputFile, "%d", D_coef[i]);
+        }
+        else {
+            fprintf(outputFile, "%dx^%d", D_coef[i], D_exp[i]);
+        }
+    }
+    fprintf(outputFile, "\n\n");
 
-    // 개선 버전 더한 값 출력
-firstTerm = 1;
-for (int i = 0; i < D_len; i++) {
-    if (D_exp[i] == 0 && D_coef[i] == 0) continue;
-
-    if (!firstTerm) {
-        fprintf(outputFile, " + ");
+    //////////////////////////////////////////////////////////////////연결리스트 버전/////////////////////////////////////////////////////////////////////////
+    for (int i = 0; i < A_len; i++) {
+        InsertPoly(0, A_exp[i], A_coef[i]);  //A다항식 연결리스트 생성 큐 방식으로 나중에 들어간게 맨 뒤쪽에 붙는다
+    }
+    for (int i = 0; i < B_len; i++) {
+        InsertPoly(1, B_exp[i], B_coef[i]);  // B다항식 연결리스트 생성 부분
     }
 
-    if (D_exp[i] == 0) {
-        // 지수가 0이면 상수항으로 출력
-        fprintf(outputFile, "%d", D_coef[i]);
-    } else if (D_coef[i] == 1) {
-        // 계수가 1이면 1은 생략하고 출력
-        fprintf(outputFile, "x^%d", D_exp[i]);
-    } else {
-        // 일반 항
-        fprintf(outputFile, "%dx^%d", D_coef[i], D_exp[i]);
-    }
-
-    firstTerm = 0;
-}
-fprintf(outputFile, "\n\n");
- //////////////////////////////////////////////////////////////////개선 버전 출력 끝/////////////////////////////////////////////////////////////////////////
-
-
-
-    //연결리스트 시작
-a = front[0];
-b = front[1];    
-d = front[2];
-
-    for (int i = 0; i < A_len; i++) { //노드 맨앞삽입이므로,,지수 작은순부터 입력받아야 내림차순됨.
-        InsertPoly(0, A_exp[i], A_coef[i]);
-    }
-    for (int i = 0; i < B_len; i++) { //노드 맨앞삽입이므로,,지수 작은순부터 입력받아야 내림차순됨.
-        InsertPoly(1, B_exp[i], B_coef[i]);
-    }
-    a = front[0];
-    b = front[1];
-    //연결리스트 시간측정 
     clock_t start3 = clock();
-    d = padd(  a,   b);
+    d = padd(front[0], front[1]);  //연결리스트 시간 측정부분 
     clock_t end3 = clock();
     double time3 = (double)(end3 - start3) / CLOCKS_PER_SEC;
 
+    a = front[0]; //출력을 어디서부터 할지 알려주기 위한.  아래를 보면 됨
+    b = front[1];
 
-    //////////////////////////////////////////////////////////////////연결리스트 버전 출력 시작/////////////////////////////////////////////////////////////////////////
-    Print(a, outputFile);
+    Print(a, outputFile); //a다항식 출력부분
+    Print(b, outputFile); //b다항식 출력부분
+    Print(d, outputFile); // a b 더한 d다항식 출력부분 
 
-    Print(b, outputFile);
-
-    Print(d, outputFile);
-
-
-    // 시간 출력 1은 초기버전 2는 개선버전
-    fprintf(outputFile,"\n");
-
-    fprintf(outputFile, "%.16lf\t%.16lf\t%.16lf\n", time1, time2, time3);
+    ////////////////////////////////////////////////////////////////////////// 3가지 버전 초기, 개선 연결리스트 시간 출력 부분//////////////////////////////////////////////////////////////////////////
+    fprintf(outputFile, "\n%.16lf\t%.16lf\t%.16lf\n", time1, time2, time3);
 
     fclose(outputFile);
 
-
-
-
-    //메모리 해제
-
+    // 메모리 해제
     free(coef); free(exp);
     free(A_exp); free(A_coef);
     free(B_exp); free(B_coef);
     free(D_exp); free(D_coef);
 
-
+    // 결과 확인을 위해 프로그램이 바로 종료되지 않게 한다.
     return 0;
 }
 
-int BubbleSort(int exp[], int coef[], int len) {  //지수 기준으로 내림차순 정렬
+int BubbleSort(int exp[], int coef[], int len) {  // 지수 기준으로 내림차순 정렬
     int i, j, tmp1, tmp2;
     for (i = 0; i < len - 1; i++) {
         for (j = 0; j < len - i - 1; j++) {
             if (exp[j] < exp[j + 1]) {
-                tmp1 = exp[j]; exp[j] = exp[j + 1]; exp[j + 1] = tmp1;
+                tmp1 = exp[j]; exp[j] = exp[j + 1]; exp[j + 1] = tmp1;  //지수의 크기에 따라 정렬되는데 그에따라 계수도 정렬을 한다. 
                 tmp2 = coef[j]; coef[j] = coef[j + 1]; coef[j + 1] = tmp2;
             }
         }
@@ -279,35 +233,40 @@ int BubbleSort(int exp[], int coef[], int len) {  //지수 기준으로 내림�
     return 0;
 }
 
-int Compare(int ae[], int be[], int a, int b) {
+int Compare(int ae[], int be[], int a, int b) {  //초기, 개선 버전만 적용
     if (ae[a] == be[b]) return 0;
     return (ae[a] > be[b]) ? 1 : -1;
 }
 
-//초기버전 구현 
-int ChoigiVersion(int ae[], int be[], int ac[], int bc[], int de[], int df[],  int A_len, int B_len , int D_len) {
+int ChoigiVersion(int ae[], int be[], int ac[], int bc[], int de[], int df[], int A_len, int B_len, int D_len) {
     int a = 0, b = 0, y = 0, sum;
     while ((a < A_len && b < B_len)) {
-        switch (Compare(ae, be, a, b)) { //가장 큰 차수 비교
-        case -1: // 지수가 a < b 이라면
-            de[y] = be[b]; //d 에 b지수 추가
-            df[y++] = bc[b++];  //d 에 b계수 추가
-            //b계수항 삭제(배열 한칸 뒤로 이동 즉 지수 작은칸으로 이동)
-            //다음 입력은 d의 다음 칸에 저장하도록 한다.
+        switch (Compare(ae, be, a, b)) {
+        case -1:
+            de[y] = be[b];//배열 한칸 뒤로 이동시키면서 다음 지수를 가리키도록 한다.
+            df[y++] = bc[b++];//배열 한칸 뒤로 이동시키면서 다음 계수를 가리키도록 한다.
             break;
-        case 0:// d와 a의 지수가 같다면
-            sum = ac[a] + bc[b]; // d와 a의 계수를 더한다
-            if (sum != 0) {
-                de[y] = ae[a]; //지수를 d배열에 저장
-                df[y++] = sum; //계수를 d배열에 저장 y++해줌으로 다음 입력은 d의 다음 칸에 저장하도록 한다.
+        case 0:
+            sum = ac[a] + bc[b];// 계수의 합을 저장 .
+            if (sum != 0) { //0 이거나 음수일 가능성은 없지만, 
+                de[y] = ae[a]; //d에는 a나 b의 지수암거나 넣어도 된다 여기선 a의 지수를 입력
+                df[y++] = sum; //d의 계수에는 a b의 합이 들어간다. 
             }
-            a++; b++; //a , b 계수항 삭제(배열을 다음 칸으로 이동시킨다. 지수 작은 칸으로 이동)    
+            a++; b++;
             break;
-        case 1: //  ae[x] > be[x]
-            de[y] = ae[a];     //d 에 a지수 추가
-            df[y++] = ac[a++]; //d 에 a지수 추가 + a계수항 삭제(배열 한칸 뒤로 이동 즉 지수 작은칸으로 이동) y++으로 다음 입력은 d의 다음 칸에 저장하도록 한다.
+        case 1:
+            de[y] = ae[a];//d 지수부분에 a 지수부분 입력, 배열 한칸 뒤로 이동시키면서 다음 지수를 가리키도록 한다.
+            df[y++] = ac[a++]; //배열 한칸 뒤로 이동시키면서 다음 계수를 가리키도록 한다.
             break;
         }
+    }//더하고 남은항을 d에 더하는 부분, 
+    while (a < A_len) {
+        de[y] = ae[a];
+        df[y++] = ac[a++];
+    }
+    while (b < B_len) {
+        de[y] = be[b];
+        df[y++] = bc[b++];
     }
     return y;
 }
@@ -316,20 +275,30 @@ int GaesonVersion(int ae[], int be[], int ac[], int bc[], int de[], int df[], in
     int starta = 0, startb = 0, finisha = A_len - 1, finishb = B_len - 1;
     int avail = 0;
     while (starta <= finisha && startb <= finishb) {
-        switch (Compare(ae, be, starta, startb)) {
-        case -1:
-            Attach(bc[startb], be[startb], de, df, &avail); startb++;
+        switch (Compare(ae, be, starta, startb)) { //a와b 다항식의 계수를 비교,
+        case -1:  // b가 큰경우
+            Attach(bc[startb], be[startb], de, df, &avail);
+            startb++; //d 다항식에 b를 붙이고, b를 한칸 뒤로 옮김으로써,, 다음칸을 가리키도록함.
             break;
         case 0:
-            Attach(ac[starta] + bc[startb], ae[starta], de, df, &avail);
-            starta++; startb++;
+            Attach(ac[starta] + bc[startb], ae[starta], de, df, &avail); //a 와 b가 같은경우 계수 더한값을 d에반환 후 계수와 지수 추가
+            starta++; startb++; //마찬가지로 다음칸 가리키도록. 
             break;
         case 1:
-            Attach(ac[starta], ae[starta], de, df, &avail); starta++;
+            Attach(ac[starta], ae[starta], de, df, &avail); //a가 큰경우
+            starta++; //a의 다음 으로 작은 지수 가리키도록..
             break;
         }
+    }//a 나 b 한쪽이 끝나면 나머지는 그대로 d에 붙이는 부분
+    while (starta <= finisha) {
+        Attach(ac[starta], ae[starta], de, df, &avail);
+        starta++;
     }
-    return 0;
+    while (startb <= finishb) {
+        Attach(bc[startb], be[startb], de, df, &avail);
+        startb++;
+    }
+    return avail;
 }
 
 int Attach(float coefficient, int exponent, int de[], int dc[], int* avail) {
@@ -344,12 +313,73 @@ int Attach(float coefficient, int exponent, int de[], int dc[], int* avail) {
 }
 
 void Print(PolyPointer front, FILE* fp) {
-    while (front) {
-        fprintf(fp, "%dx^%d", front->coef, front->expon);
-        if (front->link) fprintf(fp, " + ");
-        front = front->link;
+    PolyPointer current = front;
+    int first = 1;
+
+    while (current) {
+        if (!first) {
+            fprintf(fp, " + ");
+        }
+        if (current->expon == 0) {
+            fprintf(fp, "%d", current->coef); // 상수항 출력
+        }
+        else {
+            fprintf(fp, "%dx^%d", current->coef, current->expon);
+        }
+        first = 0;
+        current = current->link;
     }
     fprintf(fp, "\n");
+}
+
+void attach(int coef, int expon) {
+    if (coef != 0) {
+        PolyPointer temp = (PolyPointer)malloc(sizeof(struct Poly));
+        temp->coef = coef;
+        temp->expon = expon;
+        temp->link = NULL;
+
+        if (front[2])
+            rear[2]->link = temp;
+        else
+            front[2] = temp;
+
+        rear[2] = temp;
+    }
+}
+
+PolyPointer padd(PolyPointer a, PolyPointer b) {
+    int sum;
+
+    while (a && b) {
+        switch (COMPARE(a->expon, b->expon)) {
+        case -1:
+            attach(b->coef, b->expon);
+            b = b->link;
+            break;
+        case 0:
+            sum = a->coef + b->coef;
+            if (sum) attach(sum, a->expon);
+            a = a->link;
+            b = b->link;
+            break;
+        case 1:
+            attach(a->coef, a->expon);
+            a = a->link;
+            break;
+        }
+    }
+
+    while (a) {
+        attach(a->coef, a->expon);
+        a = a->link;
+    }
+    while (b) {
+        attach(b->coef, b->expon);
+        b = b->link;
+    }
+
+    return front[2];
 }
 
 int COMPARE(int a, int b) {
@@ -358,56 +388,18 @@ int COMPARE(int a, int b) {
 }
 
 void InsertPoly(int poly, int exp, int coef) {
+    if (coef == 0) return;
+
     PolyPointer temp;
     temp = (PolyPointer)malloc(sizeof(struct Poly));
     temp->coef = coef;
     temp->expon = exp;
     temp->link = NULL;
 
-
-    if (front[poly]) //널값이 아니라면 즉 0이 아니라면,
+    if (front[poly])
         rear[poly]->link = temp;
     else
         front[poly] = temp;
 
     rear[poly] = temp;
-}
-void attach(int coef, int expon) {
-    PolyPointer d;
-    d = (PolyPointer)malloc(sizeof(struct Poly));  //다항식 더한 값을 저장하는 D 노드 새로 생성 
-    d->coef = coef; //다항식 d에 계수 저장
-    d->expon = expon; //다항식 d에 지수 저장
-    d->link = NULL;
-    if (front[2]) //d의 첫번째 노드 값이 null 이 아니라면, 
-        rear[2]->link = d; //마지막 값의 링크가 새로운 노드 d를 가리키게한다.
-    else
-        front[2] = d; //첫번째 노드를 d로 설정, 
-
-    rear[2] = d; //다항식 D 의 맨뒤값은 항상 새로운 노드 d
-}
-PolyPointer padd(PolyPointer a, PolyPointer b){
-    int sum;
-
-    while (a && b)
-        switch (COMPARE(a->expon, b->expon)) {
-        case -1: /* a->expon < b->expon */
-            attach(b->coef, b->expon);
-            b = b->link;
-            break;
-        case 0: /* a->expon = b->expon */
-            sum = a->coef + b->coef;
-            if (sum) attach(sum, a->expon);
-            a = a->link; 
-            b = b->link; 
-            break;
-        case 1: /* a->expon > b->expon */
-            attach(a->coef, a->expon);
-            a = a->link;
-            break;
-        }
-    /* 리스트 a와 리스트 b의 나머지를 복사 */
-    for (; a; a = a->link) attach(a->coef, a->expon);
-    for (; b; b = b->link) attach(b->coef, b->expon);
-
-    return front[2];  //다항식 D시작 노드 반환
 }
